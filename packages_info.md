@@ -4,7 +4,7 @@
 - `'L1'` - LIGO-Livingston
 - `'V1'` - (Advanced) Virgo
 - `'K1'` - KAGRA
-
+- `'I1'` - Indigo?
 
 # Packages for LIGO Data Analysis
 - gwosc
@@ -78,11 +78,12 @@ This is a package based on OOP. Mainly for handling and analyzing the GW data.
 [a programming/Python note: all functions use snake_case; all class objects use camelCase or PascalCase]
 
 - `timeseries`
-    - `TimeSeries`
-        - `fetch_open_data`  
-        TimeSeries object that has 1D data of GW signal for a particular time segment for a particular detector.  
-        Creates a TimeSeries object
-
+    - `TimeSeries`  
+    TimeSeries object that has 1D data of GW signal for a particular time segment for a particular detector.  
+        - `.fetch_open_data`  
+        Downloads data directly from https://www.gwosc.org and creates a TimeSeries object.
+        - `.read`  
+        reads TimeSeries data from a file  
         Has several methods
         - `.plot`
         - `.fft`
@@ -95,6 +96,12 @@ This is a package based on OOP. Mainly for handling and analyzing the GW data.
         - `.q_transform`
             - `frange`
             - `qrange`
+        - `.gate`  
+        To remove glitches via 'gating' method, which is padding basically center$\pm$width region
+            - `tzero`  
+            where to pad (center)
+            - `tpad`  
+            how many time to pad (width)
 
 - `time`  
 For converting usual `yymmdd` time to `gps time`
@@ -102,12 +109,15 @@ For converting usual `yymmdd` time to `gps time`
 ## `pycbc` (2.0.5) (`lalsuite` (7.11))
 For generating waveforms, template generation, matched filtering, template bank generation - waveform template related stuffs
 
-- `waveform`
+- `waveform`  
+[td: time domain, fd: frequency domain]
     - `td_approximants`
-    - `fd_approximants`
+    - `fd_approximants`  
+    shows the available approximants
     - `get_td_waveform`
     - `get_fd_waveform`  
-    Returns TimeSeries object
+    Returns TimeSeries/FrequencySeries object of two polarization hplus and hcross;  
+    parameters: `approximant`, `mass1`, `mass2`, `delta_t`/`delta_f`, `f_lower`, `distance` (see full documentation for other parameters)
 
 - `psd`
     - `aLIGOZeroDetHighPower`
@@ -138,9 +148,15 @@ For generating waveforms, template generation, matched filtering, template bank 
             - `frange`
 
 - `catalog`
-    - `Merger`
+    - `Merger`  
+    Gets merger data from [gwosc](https://gwosc.org).  
         - `.strain`  
         Returns TimeSeries object
+
+- `frame`
+    - `read_frame`  
+    to read local file, expects `file`, `channel_name`.  
+    Returns TimeSeries object
 
 - `filter`
     - `resample_to_delta_t`
@@ -154,8 +170,88 @@ For generating waveforms, template generation, matched filtering, template bank 
 
 - `events`
     - `ranking`
-        - `newsnr`
+        - `newsnr`  
+        Returns numpy array, not TimeSeries object
 
 - `detector`
     - `Detector`
         - `light_travel_time_to_detctor`
+
+
+## `bilby` (2.0.1)  
+For Parameter estimation
+
+- `core`
+    - `likelihood`
+        - `GaussianLikelihood`
+    - `prior`
+        - `Uniform`
+        - `PowerLaw`
+        - `PriorDict`
+    - `result`
+        - `Result`
+            - `plot_corner`
+            - `posterior`
+            - `priors`
+            - `sampler_kwargs`
+            - `log_bayes_factor`
+            - `log_evidence_err`
+
+- `run_sampler`  
+    Returns Result object
+
+- `gw`
+    - `conversion`
+        - `convert_to_lal_binary_black_hole_parameters`
+        - `generate_all_bbh_parameters`
+    - `detector`
+        - `get_empty_interferometer`  
+        Returns Interferometer object
+        - `interferometer`
+            - `Interferometer`
+                - `set_strain_data_from_gwpy_timeseries`
+                - `strain_data`
+                    - `roll_off`
+                    - `frequency_mask`
+                    - `frequency_array`
+                    - `frequency_domain_strain`
+                - `power_spectral_density`  
+                This is a PowerSpectralDensity object
+                - `maximum_frequency`
+                - `minimum_frequency`
+        - `psd`
+            - `PowerSpectralDensity`
+                - `frequency_array`
+                - `asd_array`
+        - `PowerSpectralDensity` (alias to psd.PowerSpectralDensity)
+    - `WaveformGenerator`
+    - `source`
+        - `lal_binary_black_hole`
+    - `likelihood`
+        - `GravitationalWaveTransient`
+
+## `dynesty` (2.1.1)
+
+
+## `h5py`
+To read `.hdf5` files
+
+- `File` (alias to `_hl.files.File`)
+- `._hl`
+    - `files`
+        - `File`
+            - `keys`
+                * `luminosity_distance_Mpc`: luminosity distance [Mpc]
+
+                * `m1_detector_frame_Msun`: primary (larger) black hole mass (detector frame) [solar mass]
+
+                * `m2_detector_frame_Msun`: secondary (smaller) black hole mass (detector frame) [solar mass]
+
+                * `right_ascension`, `declination`: right ascension and declination of the source [rad].
+
+                * `costheta_jn`: cosine of the angle between line of sight and total angular momentum vector of the system.
+
+                * `spin1`, `costilt1`: primary (larger) black hole spin magnitude (dimensionless) and cosine of the zenith angle between the spin and the orbital angular momentum vector of the system.
+
+                * `spin2`, `costilt2`: secondary (smaller) black hole spin magnitude (dimensionless) and cosine of the zenith angle between the spin and the orbital angular momentum vector of the system.
+
