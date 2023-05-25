@@ -196,6 +196,8 @@ For Parameter estimation
             - `sampler_kwargs`
             - `log_bayes_factor`
             - `log_evidence_err`
+        - `read_in_result`  
+        Reads from already generated and exported result, returns Result object
 
 - `run_sampler`  
     Returns Result object

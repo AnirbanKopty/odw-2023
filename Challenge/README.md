@@ -55,7 +55,7 @@ Signal in colored, Gaussian noise.
 5. What is the matched filter SNR of the signal?
 
 
-### Challenge 3 (4 points) -- Intermediate
+## Challenge 3 (4 points) -- Intermediate
 
 * Use the data file "challenge3.gwf" with channel "H1:CHALLENGE3"
 * These are real LIGO data from O2, though we've adjusted the time labels and 
@@ -67,7 +67,7 @@ Signal in colored, Gaussian noise.
 2. What is the matched-filter SNR of this signal?
 
 
-### Challenge 4 (8 points) -- Advanced
+## Challenge 4 (8 points) -- Advanced
 
 * Use the data file "challenge3.gwf" with channels "H1:CHALLENGE3" and "L1:CHALLENGE3".
 * These are real LIGO data from O2, though we've adjusted the time labels and 
@@ -93,7 +93,7 @@ against your score.  For each signal you find, list:
 
 Processing data from a local file with Bilby
 
-```
+```Python
 sampling_rate=2048 #needs to be high enough for the signals found in steps above
 duration=8 #needs to be long enough for the signals found in steps above
 start_time=100 #needs to be set so that the segment defined by [start_time,start_time+duration] contains the signal
@@ -106,7 +106,7 @@ for ifo_name in ['H1','L1']:
 ```
 
 To load data in google co-lab.  Run this code, and then 'restart runtime', and run it again
-```
+```Python
 ! pip install -q lalsuite
 ! pip install -q gwpy
 ! pip install -q pycbc

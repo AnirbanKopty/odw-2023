@@ -1,3 +1,9 @@
 *.ipynb_checkpoints
+.vscode
 *.gwf
-*.ipynb         # remove this later
+*.hdf5
+# Tutorials/
+Tutorials/Day_3/short
+Tutorials/Day_3/toy_model
+# Challenge/
+*/__pycache__
