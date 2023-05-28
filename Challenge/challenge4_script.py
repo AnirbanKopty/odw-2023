@@ -4,6 +4,7 @@ from pycbc.filter import highpass, resample_to_delta_t, matched_filter
 from pycbc.psd import interpolate, inverse_spectrum_truncation
 from pycbc.vetoes import power_chisq
 from pycbc.events.ranking import newsnr
+import pycbc
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -57,6 +58,148 @@ def challenge_matched_filter(file_name, channel_name_arr, mass_arr, spin=0):
             nsnr_x[cname][mass] = newsnr(abs(snr_x[cname][mass]), chisq_x[cname][mass])
     
     return ts, psd_ts, snr_x, chisq_x, nsnr_x
+
+
+def index_peak_gen(nsnr_x, channel_name_arr, mass_arr, factor_method=True, factor=7, cutoff=4):
+    """
+    This function takes in `nsnr_x` `dict` which has a structure of `nsnr_x[cname][mass]`, finds peak indices.  
+
+    The triggers can be taken in two ways based on the `cutoff` over which it will be considered as a potential trigger,
+        - `factor_method=True`: it takes `mean+std*factor` to be cutoff
+        - `factor_method=False`: it takes a `cutoff`
+
+    Returns a `dict` containing the peak indices in the same structure as `nsnr_x`
+    """
+    # We consider peaks to be signal if it's above factor*sigma level (mean+std*factor)
+    peak_idx = {}
+    for cname in channel_name_arr:
+        peak_idx[cname] = {}
+        for mass in mass_arr:
+
+            # #
+            # if mass != 50:
+            #     continue
+            # #
+
+            nsnr_x[cname][mass] = abs(nsnr_x[cname][mass])
+            if factor_method:
+                cutoff = np.mean(nsnr_x[cname][mass]) + np.std(nsnr_x[cname][mass])*factor
+            else:
+                pass        # taking the given cutoff value
+
+            bool_arr = nsnr_x[cname][mass] > cutoff
+            nsnr_x_peaks = nsnr_x[cname][mass][bool_arr]
+
+            peak_idx[cname][mass] = []
+            if isinstance(nsnr_x[cname][mass], pycbc.types.timeseries.TimeSeries):
+                for peaks in nsnr_x_peaks:
+                    peak_idx[cname][mass].append(np.where(nsnr_x[cname][mass].data == peaks)[0][0])
+            else:
+                for peaks in nsnr_x_peaks:
+                    peak_idx[cname][mass].append(np.where(nsnr_x[cname][mass] == peaks)[0][0])
+
+            # #? to eradicate nearby points and take end points (indices)
+            peak_idxx = []
+            peak_idxx.append(peak_idx[cname][mass][0])
+            for i in range(len(peak_idx[cname][mass])-1):
+                # print(np.diff(peak_idx[cname][mass]))
+                if np.diff(peak_idx[cname][mass])[i] > 1:
+                    peak_idxx.append(peak_idx[cname][mass][i])
+                    peak_idxx.append(peak_idx[cname][mass][i+1])
+            peak_idxx.append(peak_idx[cname][mass][-1])
+            peak_idx[cname][mass] = peak_idxx
+            
+            # #? to take the indices of the maxima/peaks
+            peak_idxx = []
+            for i in range(0, len(peak_idx[cname][mass]), 2):
+                try:
+                    tmp_peak_idx = np.argmax(nsnr_x[cname][mass][peak_idx[cname][mass][i]:peak_idx[cname][mass][i+1]])
+                except:
+                    tmp_peak_idx = 0
+                peak_idxx.append(peak_idx[cname][mass][i]+tmp_peak_idx)
+            peak_idx[cname][mass] = peak_idxx
+    
+    return peak_idx
+
+def plot_triggers(nsnr_x, channel_name_arr, mass_arr, peak_idx, snr_x, tof, factor, full_range=False, mass_val=None):
+    #! This script can work only when will show correct windows and everything only if channels are not more than 2
+    """
+    It plots the `nsnr_x` and shows each peaks in zoomed view.
+    
+    Since the kernel was crashing, I added `full_range` option, if `True` plots for all masses, but if `False`, plots for only `mass_val`
+    """
+
+    for mass in mass_arr:
+        if not(full_range):
+            if mass!=mass_val:
+                continue
+
+        print(f"\n\nMass: {mass}")
+
+        #? to check which channel has highest peak counts, it is needed to generate no of subplots
+        pk_cnt = {}
+        for cname in channel_name_arr:
+            pk_cnt[cname] = len(peak_idx[cname][mass])
+        pk_cnt_max = np.max(list(pk_cnt.values()))
+        cname_maxpk = list(pk_cnt.keys())[list(pk_cnt.values()).index( pk_cnt_max )]
+        #// print(pk_cnt)
+        
+        # Plot the new SNR timeseries
+        fig1, ax1 = plt.subplots(figsize=[14, 4])
+        # creating multiple subplots by 4 in each row
+        four = 4
+        n = len(peak_idx[cname_maxpk][mass])
+        m = int(n/four)
+        if n%four!=0:
+            m += 1
+        fig, ax = plt.subplots(m, four, figsize=[14,4*m], sharey=True)
+        ax = ax.reshape(ax.size)
+
+        for cname, color in zip(channel_name_arr, ['tab:blue', 'tab:orange']):
+            ax1.plot(snr_x[cname][mass].sample_times, nsnr_x[cname][mass], label=cname)
+            ax1.axhline(np.mean(nsnr_x[cname][mass])+np.std(nsnr_x[cname][mass])*factor, linewidth=0.5, color=color, linestyle='--')
+            for i in range(len(peak_idx[cname][mass])):
+                ax1.axvline(snr_x[cname][mass].sample_times[peak_idx[cname][mass][i]], color=color, linestyle='--', linewidth=0.5)
+
+                # shade the region around each Hanford peak that could have a peak in Livingston if from
+                # an astrophysical source
+                if cname == cname_maxpk:
+                    ptime = snr_x[cname][mass].sample_times[peak_idx[cname][mass]][i]
+                    ax1.axvspan(ptime - tof, ptime + tof, alpha=0.2, color=color)
+        
+            # for the subplots showing zoomed views
+            for iax, i in zip(np.atleast_1d(ax), range(len(np.atleast_1d(ax)))):
+                if i < n:
+                    iax.plot(snr_x[cname][mass].sample_times, nsnr_x[cname][mass], '.-', label=cname)
+                    iax.axhline(np.mean(nsnr_x[cname][mass])+np.std(nsnr_x[cname][mass])*factor, linewidth=0.5, color=color, linestyle='--')
+                    try:
+                        # print(cname, peak_idx[cname][mass][i], snr_x[cname][mass].sample_times[peak_idx[cname][mass][i]])
+                        iax.axvline(snr_x[cname][mass].sample_times[peak_idx[cname][mass][i]], color=color, linestyle='--', linewidth=0.5)
+                    except:
+                        pass
+
+                    if cname == cname_maxpk:
+                        iax.set_xlim( snr_x[cname][mass].sample_times[peak_idx[cname][mass][i]] - tof - 0.001,
+                                snr_x[cname][mass].sample_times[peak_idx[cname][mass][i]] + tof + 0.001  )
+                        ptime = snr_x[cname][mass].sample_times[peak_idx[cname][mass]][i]
+                        iax.axvspan(ptime - tof, ptime + tof, alpha=0.2, color=color)
+
+        ax1.set_title(f'NewSNR Timeseries for mass {mass}')
+        ax1.grid()
+        ax1.set_xlabel('Time (s)')
+        ax1.set_ylabel('Re-weighted Signal-to-noise')
+        ax1.legend()
+        plt.show()
+
+
+        for cname in channel_name_arr:
+            print(f"\nChannel: {cname}")
+            for idx in peak_idx[cname][mass]:
+                print("We found a signal at {}s with SNR {}".format(snr_x[cname][mass].sample_times[idx],
+                                                                    nsnr_x[cname][mass][idx]))
+
+
+
 
 
 # Now that we've calculated the onsource peak, we should calculate the background peak values.
