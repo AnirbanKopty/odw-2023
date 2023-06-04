@@ -86,6 +86,7 @@ This is a package based on OOP. Mainly for handling and analyzing the GW data.
         reads TimeSeries data from a file  
         Has several methods
         - `.plot`
+        - `.times`
         - `.fft`
         - `.asd`
         - `.spectrogram`
@@ -198,6 +199,14 @@ For Parameter estimation
             - `log_evidence_err`
         - `read_in_result`  
         Reads from already generated and exported result, returns Result object
+    
+    - `utils`
+        - `SamplesSummary`
+            - `.median`
+            - `.upper_relative_credible_interval`
+            - `.lower_relative_credible_interval`
+            - `.upper_absolute_credible_interval`
+            - `.lower_absolute_credible_interval`
 
 - `run_sampler`  
     Returns Result object

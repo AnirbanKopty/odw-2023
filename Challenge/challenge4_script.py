@@ -199,7 +199,22 @@ def plot_triggers(nsnr_x, channel_name_arr, mass_arr, peak_idx, snr_x, tof, fact
                                                                     nsnr_x[cname][mass][idx]))
 
 
+def check_within_tof(peak_idx, window_size, channel_name_arr, mass_arr):
+    #! For signal with two channels
+    signal = {}
 
+    for mass in mass_arr:
+        signal[mass] = []
+        diff = []
+        for i in range(len(peak_idx[channel_name_arr[0]][mass])):
+            for j in range(len(peak_idx[channel_name_arr[1]][mass])):
+                if (peak_idx[channel_name_arr[0]][mass][i] - peak_idx[channel_name_arr[1]][mass][j]) <= window_size:
+                    signal[mass].append(True)
+                    break
+                else:
+                    signal[mass].append(False)
+    
+    return signal
 
 
 # Now that we've calculated the onsource peak, we should calculate the background peak values.

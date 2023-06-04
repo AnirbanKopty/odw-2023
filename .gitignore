@@ -5,5 +5,8 @@
 # Tutorials/
 Tutorials/Day_3/short
 Tutorials/Day_3/toy_model
+Challenge/bayesian_output
 # Challenge/
 */__pycache__
+*.npz
+*.pickle
