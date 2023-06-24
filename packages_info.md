@@ -135,6 +135,8 @@ For generating waveforms, template generation, matched filtering, template bank 
         - `.psd`
         - `.cyclic_time_shift`
         - `.sample_times`
+        - `.time_slice`
+        - `.roll`   (shifts the whole data by some indices)
         - `.sample_frequencies`
         - `.to_frequencyseries`
         - `.to_timeseries`
